@@ -1,28 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-const getStateFromLocalStore = (key) => {
-  const value = localStorage.getItem(key);
-  if (value !== undefined) {
-    return JSON.parse(value);
+const useLocalStorage = (key, initialState) => {
+  const get = () => {
+    const value = localStorage.getItem(key);
+    if (value !== undefined) {
+      return JSON.parse(value);
+    }
+    return initialState;
   }
-}
+  
+  const [value, setValue] = useState(get());
 
-const storeStateInLocalStorage = (key, value) => {
-  localStorage.setItem(key, JSON.stringify(value));
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(value))
+  }, [key, value])
+
+  return [value, setValue];
 }
 
 /* ----- COMPONENT ----- */
 const Counter = ({ max, step }) => {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useLocalStorage('count', 0);
+  const countRef = useRef();
 
-  useEffect(() => {
-    const storedCount = getStateFromLocalStore('count');
-    if (storedCount) setCount(storedCount);
-  }, [])
+  let message ='';
+  if (countRef.current < count) message = 'Higher';
+  else if (countRef.current > count) message = 'Lower';
+  countRef.current = count;
   
   useEffect(() => {
     document.title = `Count: ${count}`
-    storeStateInLocalStorage('count', count)
+    // const id = setInterval(() => console.log(count), 2500)
+    // CLEANUP //
+    // return () => clearInterval(id);
   }, [count])
 
   const increment = () => {
@@ -34,6 +44,7 @@ const Counter = ({ max, step }) => {
 
   return (
     <div className="Counter">
+      <p>{message}</p>
       <p className="count">{count}</p>
       <section className="controls">
         <button onClick={increment}>Increment</button>
